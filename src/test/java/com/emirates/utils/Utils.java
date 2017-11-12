@@ -2,35 +2,76 @@ package com.emirates.utils;
 import io.appium.java_client.AppiumDriver;
 import io.appium.java_client.MobileElement;
 import io.appium.java_client.TouchAction;
+import io.appium.java_client.remote.MobileCapabilityType;
+
 import org.apache.log4j.Logger;
 import org.openqa.selenium.Dimension;
 import org.openqa.selenium.NoSuchElementException;
+import org.openqa.selenium.remote.DesiredCapabilities;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
+import org.testng.Reporter;
+
+import com.relevantcodes.extentreports.model.Log;
+
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 public class Utils 
 {
-	
-	String XPATH = "xpath";
-	String ID = "id";
-	String NAME = "name";
 	String AID = "accessabilityId";
 	String CLASSNAME = "classname";
-	
+	String ID = "id";
+	String NAME = "name";
+	int TIMEOUT=70;
+	String XPATH = "xpath";
+
 	public AppiumDriver<MobileElement> driver;
-	Logger logger = Logger.getLogger(Utils.class);
+	Logger logger = Logger.getLogger(Log.class.getName());
 	
-	public Utils(AppiumDriver<MobileElement> driver) 
-	{
-		this.driver = driver;
+	public Utils(String deviceName) throws MalformedURLException {
+		driver = new AppiumDriver<MobileElement>(new URL(getValueFromPropertiesFile("appiumUrl")), getDeviceSettings(deviceName));
+		driver.manage().timeouts().implicitlyWait(TIMEOUT, TimeUnit.SECONDS);
+	}
+	
+	public void closeMobileApp() {
+		driver.quit();
+	}
+	
+	public DesiredCapabilities getDeviceSettings(String deviceName) {
+		String aut = getValueFromPropertiesFile("testApk");
+		DesiredCapabilities capabilities = new DesiredCapabilities();
+		File directory = new File ("./build");
+		File app=new File(directory,aut);
+		capabilities.setCapability(MobileCapabilityType.APP, app);
+		
+		if (aut.contains("selendroid")){
+			capabilities.setCapability("appPackage", getValueFromPropertiesFile("slendroidAppPackage"));
+			capabilities.setCapability("appActivity", getValueFromPropertiesFile("slendroidAppActivity"));
+		}
+		
+		if (deviceName.equalsIgnoreCase("testEmulator")){
+			capabilities.setCapability(MobileCapabilityType.DEVICE_NAME, getValueFromPropertiesFile("testEmulatorDeviceName"));
+			capabilities.setCapability(MobileCapabilityType.PLATFORM_NAME, getValueFromPropertiesFile("testEmulatorPlatformName"));
+			capabilities.setCapability(MobileCapabilityType.PLATFORM_VERSION, getValueFromPropertiesFile("testEmulatorPlatformVersion"));
+		}
+		else if (deviceName.equalsIgnoreCase("MyLenovoK4Note")) {
+			capabilities.setCapability(MobileCapabilityType.DEVICE_NAME, getValueFromPropertiesFile("MyLenovoK4NoteDeviceName"));
+			capabilities.setCapability(MobileCapabilityType.PLATFORM_NAME, getValueFromPropertiesFile("MyLenovoK4NotePlatformName"));
+			capabilities.setCapability(MobileCapabilityType.PLATFORM_VERSION, getValueFromPropertiesFile("MyLenovoK4NotePlatformVersion"));
+		}
+			
+		return capabilities;
 	}
 
 	/**
@@ -151,6 +192,12 @@ public class Utils
 		}
 	}
 
+	public void enterTextInElement(MobileElement el, String data) {
+		el.clear();
+		el.click();
+		el.sendKeys(data);
+	}
+	
 	public void swipeRightUntilTextExists(String expected) {
 		do {
 			swipeRight();
@@ -234,7 +281,7 @@ public class Utils
 		}
 		driver.context((String) contextNames.toArray()[1]); // set context to WEBVIEW_1
 
-		logger.info("Current context" + driver.getContext());
+		Reporter.log("Current context" + driver.getContext());
 	}
 	/**
 	 *Switch from Native to WebView
@@ -248,7 +295,7 @@ public class Utils
 			if (contextName.contains("WEBVIEW"))
 			{
 				driver.context(contextName);
-				logger.info("Current context" + driver.getContext());
+				Reporter.log("Current context" + driver.getContext());
 			}
 		}
 	}
@@ -264,7 +311,7 @@ public class Utils
 			if (contextName.contains("NATIVE"))
 			{
 				driver.context(contextName);
-				logger.info("Current context" + driver.getContext());
+				Reporter.log("Current context" + driver.getContext());
 			}
 		}
 	}
